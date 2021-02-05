@@ -22,8 +22,8 @@ describe("Package", function () {
   describe("fromFile", () => {
     it("loads package data from a JSON file", async () => {
       const expected = new Package(
-        "@keep-network/test-package",
-        "1.2.3-rc.0+9876543",
+        "@keep-network/keep-core",
+        "1.0.1-rc.0+9876543",
         resolve(PACKAGE_JSON_FILE_PATH)
       )
 
@@ -73,7 +73,7 @@ describe("Package", function () {
 
       const actual = Package.fromFile(tempFilePath)
       const expected = new Package(
-        "@keep-network/test-package",
+        "@keep-network/keep-core",
         newVersion,
         resolve(tempFilePath)
       )

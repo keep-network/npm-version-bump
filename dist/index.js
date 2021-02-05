@@ -13,7 +13,7 @@ const { VersionResolver } = __nccwpck_require__(2528)
 
 async function run() {
   try {
-    const workDir = core.getInput("workDir") || __dirname
+    const workDir = core.getInput("workDir") || __dirname // TODO: Try to replace with step run `working_directory` property.
     const isPrerelease = core.getInput("isPrerelease") || true
     const preid = core.getInput("preid")
 
