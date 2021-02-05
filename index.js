@@ -6,7 +6,7 @@ const { VersionResolver } = require("./src/version-resolver.js")
 
 async function run() {
   try {
-    const workDir = core.getInput("workDir") || __dirname // TODO: Try to replace with step run `working_directory` property.
+    const workDir = core.getInput("workDir") // || __dirname // TODO: Try to replace with step run `working_directory` property.
     const isPrerelease = core.getInput("isPrerelease") || true
     const preid = core.getInput("preid")
 
