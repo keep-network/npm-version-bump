@@ -41,6 +41,8 @@ async function run() {
 
     const newVersion = await versionResolver.bumpVersion()
 
+    core.info(`version bumped to: ${newVersion}`)
+
     core.setOutput("version", newVersion)
   } catch (error) {
     core.setFailed(error.message)
