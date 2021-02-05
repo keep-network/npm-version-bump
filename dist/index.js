@@ -6,18 +6,25 @@ require('./sourcemap-register.js');module.exports =
 /***/ ((__unused_webpack_module, __unused_webpack_exports, __nccwpck_require__) => {
 
 const core = __nccwpck_require__(2186)
-const { resolve } = __nccwpck_require__(5622)
+const { isAbsolute, join, resolve } = __nccwpck_require__(5622)
 
 const { Package } = __nccwpck_require__(2449)
 const { VersionResolver } = __nccwpck_require__(2528)
 
+const ROOT_DIR = process.env.GITHUB_WORKSPACE || __dirname
+
 async function run() {
   try {
-    const workDir = core.getInput("workDir") // || __dirname // TODO: Try to replace with step run `working_directory` property.
-    const isPrerelease = core.getInput("isPrerelease") || true
+    const workDir = core.getInput("workDir")
+    const isPrerelease = core.getInput("isPrerelease")
     const preid = core.getInput("preid")
 
-    const npmPackage = Package.fromFile(__nccwpck_require__.ab + "npm-version-bump/" + workDir + '/package.json')
+    const packageJsonPath = join(
+      resolveWorkingDirectory(workDir),
+      "package.json"
+    )
+
+    const npmPackage = Package.fromFile(packageJsonPath)
 
     const versionResolver = new VersionResolver(
       workDir,
@@ -46,6 +53,14 @@ async function run() {
     core.setOutput("version", newVersion)
   } catch (error) {
     core.setFailed(error.message)
+  }
+}
+
+function resolveWorkingDirectory(workDir) {
+  if (isAbsolute(workDir)) {
+    return normalize(workDir)
+  } else {
+    return resolve(ROOT_DIR, workDir)
   }
 }
 
@@ -3510,7 +3525,7 @@ module.exports = { Package }
 
 const core = __nccwpck_require__(2186)
 const { resolve } = __nccwpck_require__(5622)
-const { exec } = __nccwpck_require__(3129)
+const { exec } = __nccwpck_require__(3129) // TODO: Change to `@actions/exec`
 
 const { Package } = __nccwpck_require__(2449)
 
