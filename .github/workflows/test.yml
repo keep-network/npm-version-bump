@@ -21,6 +21,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: ./
+        id: bump-version
         with:
           workDir: "./test/data"
           isPrerelease: true
+      # Print results of action execution to verify them.
+      - name: Print package.json content
+        run: cat ./test/data/package.json
+      - name: Print resolved version
+        run: echo "Resolved new version ${{ steps.bump-version.outputs.version }}"
