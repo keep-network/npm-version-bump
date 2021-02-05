@@ -1,13 +1,21 @@
-name: 'Wait'
-description: 'Wait a designated number of milliseconds'
+name: "NPM Package Version Bump"
+description: "Bumps version of NPM package"
 inputs:
-  milliseconds:  # id of input
-    description: 'number of milliseconds to wait'
-    required: true
-    default: '1000'
+  workDir:
+    description: "Directory containing `package.json` file"
+    required: false
+    default: "."
+  isPrerelease:
+    description: "Should bump version for prerelease"
+    required: false
+    default: "true"
+  preid:
+    description: "Prerelease version ID"
+    required: false
+    default: "pre"
 outputs:
-  time: # output will be available to future steps
-    description: 'The message to output'
+  version:
+    description: "Resolved new version"
 runs:
-  using: 'node12'
-  main: 'dist/index.js'
+  using: "node12"
+  main: "dist/index.js"

@@ -1,21 +1,43 @@
-const core = require('@actions/core');
-const wait = require('./wait');
+const core = require("@actions/core")
+const { resolve } = require("path")
 
+const { Package } = require("./src/package.js")
+const { VersionResolver } = require("./src/version-resolver.js")
 
-// most @actions toolkit packages have async methods
 async function run() {
   try {
-    const ms = core.getInput('milliseconds');
-    core.info(`Waiting ${ms} milliseconds ...`);
+    const workDir = core.getInput("workDir") || __dirname // TODO: Try to replace with step run `working_directory` property.
+    const isPrerelease = core.getInput("isPrerelease") || true
+    const preid = core.getInput("preid")
 
-    core.debug((new Date()).toTimeString()); // debug is only output if you set the secret `ACTIONS_RUNNER_DEBUG` to true
-    await wait(parseInt(ms));
-    core.info((new Date()).toTimeString());
+    const npmPackage = Package.fromFile(resolve(workDir, "package.json"))
 
-    core.setOutput('time', new Date().toTimeString());
+    const versionResolver = new VersionResolver(
+      workDir,
+      npmPackage,
+      isPrerelease,
+      preid
+    )
+
+    let latestVersion = await versionResolver.getLatestPublishedVersion()
+
+    // If no published versions are found use the current one from package.json.
+    if (!latestVersion) {
+      const currentVersion = versionResolver.package.version
+
+      core.info(`latest version not found; using current ${currentVersion}`)
+      latestVersion = currentVersion
+    }
+
+    core.info(`saving version to package.json file: ${latestVersion}`)
+    versionResolver.package.updateVersion(latestVersion)
+
+    const newVersion = await versionResolver.bumpVersion()
+
+    core.setOutput("version", newVersion)
   } catch (error) {
-    core.setFailed(error.message);
+    core.setFailed(error.message)
   }
 }
 
-run();
+run()
