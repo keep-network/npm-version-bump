@@ -13,11 +13,11 @@ const { VersionResolver } = __nccwpck_require__(2528)
 
 async function run() {
   try {
-    const workDir = core.getInput("workDir") || __dirname // TODO: Try to replace with step run `working_directory` property.
+    const workDir = "test/data/" //core.getInput("workDir") || __dirname // TODO: Try to replace with step run `working_directory` property.
     const isPrerelease = core.getInput("isPrerelease") || true
     const preid = core.getInput("preid")
 
-    const npmPackage = Package.fromFile(__nccwpck_require__.ab + "npm-version-bump/" + workDir + '/package.json')
+    const npmPackage = Package.fromFile(__nccwpck_require__.ab + "package.json")
 
     const versionResolver = new VersionResolver(
       workDir,
@@ -36,7 +36,7 @@ async function run() {
       latestVersion = currentVersion
     }
 
-    core.info(`saving version to package.json file: ${latestVersion}`)
+    core.info(`saving version ${latestVersion} to package.json file`)
     versionResolver.package.updateVersion(latestVersion)
 
     const newVersion = await versionResolver.bumpVersion()
@@ -3468,6 +3468,8 @@ class Package {
   }
 
   static fromFile(filePath) {
+    console.log(`loading package configuration from file: ${filePath}`)
+
     const packageJsonContent = readFileSync(filePath)
 
     const newPackage = this.fromJSON(packageJsonContent)
@@ -3493,6 +3495,8 @@ class Package {
     pacakgeJson.version = this.version
 
     writeFileSync(this.filePath, JSON.stringify(pacakgeJson, null, 2))
+
+    console.log(`updated file ${this.filePath}`)
   }
 }
 

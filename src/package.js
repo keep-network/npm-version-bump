@@ -16,6 +16,8 @@ class Package {
   }
 
   static fromFile(filePath) {
+    console.log(`loading package configuration from file: ${filePath}`)
+
     const packageJsonContent = readFileSync(filePath)
 
     const newPackage = this.fromJSON(packageJsonContent)
@@ -41,6 +43,8 @@ class Package {
     pacakgeJson.version = this.version
 
     writeFileSync(this.filePath, JSON.stringify(pacakgeJson, null, 2))
+
+    console.log(`updated file ${this.filePath}`)
   }
 }
 
