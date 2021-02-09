@@ -1,6 +1,6 @@
 const core = require("@actions/core")
 const { resolve } = require("path")
-const { exec } = require("child_process")
+const { exec } = require("child_process") // TODO: Change to `@actions/exec`
 
 const { Package } = require("./package.js")
 
