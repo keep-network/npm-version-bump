@@ -1,0 +1,21 @@
+name: "units-test"
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - "releases/*"
+
+jobs:
+  # test action works running from the graph
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./
+        id: bump-version
+        with:
+          workDir: ./test/data
+      # Print results of action execution to verify them.
+      - name: Print package.json content
+        run: cat ./test/data/package.json
