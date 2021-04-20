@@ -18,9 +18,9 @@ runs:
         version=$(jq --raw-output .version package.json)
         preid=$(echo $version | sed -e s/^.*-\\\([^.]*\\\).*$/\\1/)
 
-        # Check resolved `preid`. Currently only `pre` value is supported,
+        # Check resolved `preid`. Currently only `pre` and `rc` values are supported,
         # other types of releases are not handled by this job.
-        if [ "$preid" != pre ]; then
+        if [ "$preid" != pre ] && [ "$preid" != rc ]; then
           echo "Unsupported preid. Resolved info:"
           echo "$name@$version ; preid $preid"
           exit 1
