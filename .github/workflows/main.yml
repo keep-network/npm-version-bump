@@ -6,24 +6,20 @@ on:
     #   - main
 
 jobs:
-  prepare:
+  dist:
+    name: Verify committed dist directory
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
 
       - name: Calculate hash of committed `dist` directory
-        run: |
-          # FIXME: Using github's function `hashFiles` seemed to give incorrect
-          # results for the directory so we're using md5sum instead.
-          # echo "COMMITTED_HASH=$(find ./dist -type f -exec md5sum {} \; | md5sum | awk '{print $1}')" >> $GITHUB_ENV
-          echo "COMMITTED_HASH=${{ hashFiles('./dist/**') }}" >> $GITHUB_ENV
+        run: echo "COMMITTED_HASH=${{ hashFiles('./dist/**') }}" >> $GITHUB_ENV
 
       - run: yarn install
 
       - name: Calculate expected hash of `dist` directory
         run: |
           rm -rf dist && yarn run prepare
-          # echo "EXPECTED_HASH=$(find ./dist -type f -exec md5sum {} \; | md5sum | awk '{print $1}')" >> $GITHUB_ENV
           echo "EXPECTED_HASH=${{ hashFiles('./dist/**') }}" >> $GITHUB_ENV
 
       - name: Compare committed and expected hashes
