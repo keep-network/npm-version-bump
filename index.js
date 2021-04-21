@@ -5,8 +5,6 @@ const { convertBranch, resolveWorkingDirectory } = require("./src/utils.js")
 const { Package } = require("./src/package.js")
 const { VersionResolver } = require("./src/version-resolver.js")
 
-const ROOT_DIR = process.env.GITHUB_WORKSPACE || __dirname
-
 async function run() {
   try {
     const workDir = core.getInput("work-dir")

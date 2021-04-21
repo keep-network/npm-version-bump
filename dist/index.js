@@ -12,8 +12,6 @@ const { convertBranch, resolveWorkingDirectory } = __nccwpck_require__(1608)
 const { Package } = __nccwpck_require__(2449)
 const { VersionResolver } = __nccwpck_require__(2528)
 
-const ROOT_DIR = process.env.GITHUB_WORKSPACE || __dirname
-
 async function run() {
   try {
     const workDir = core.getInput("work-dir")
@@ -3582,6 +3580,7 @@ module.exports = { Package }
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 const { isAbsolute, resolve } = __nccwpck_require__(5622)
+const ROOT_DIR = process.env.GITHUB_WORKSPACE || __dirname
 
 /**
  * @param {string} string
