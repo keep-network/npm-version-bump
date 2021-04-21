@@ -3534,7 +3534,6 @@ module.exports = { execute }
 
 const { readFileSync, writeFileSync } = __nccwpck_require__(5747)
 const { resolve } = __nccwpck_require__(5622)
-const semver = __nccwpck_require__(1383)
 
 const { Version } = __nccwpck_require__(9554)
 
