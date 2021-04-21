@@ -6,7 +6,11 @@ const ROOT_DIR = process.env.GITHUB_WORKSPACE || __dirname
  * @return {string}
  */
 function convertBranch(string) {
-  // We're replacing characters in the branch name:
+  // Strip out `refs/heads/` and `refs/tags/` prefixes that are included in the
+  // github context ref variable.
+  string = string.replace(/^refs\/(heads|tags)\//, "")
+
+  // Replace characters in the branch name:
   // - `/` is invalid for semver,
   // - `.` in the regexp we use for version metadata parsing it starts the commit
   //    hash part.
