@@ -6,53 +6,17 @@ require('./sourcemap-register.js');module.exports =
 /***/ ((__unused_webpack_module, __unused_webpack_exports, __nccwpck_require__) => {
 
 const core = __nccwpck_require__(2186)
-const { isAbsolute, join, resolve } = __nccwpck_require__(5622)
-const { convertBranch, resolveWorkingDirectory } = __nccwpck_require__(1608)
-
-const { Package } = __nccwpck_require__(2449)
-const { VersionResolver } = __nccwpck_require__(2528)
+const { execute } = __nccwpck_require__(1713)
 
 async function run() {
   try {
-    console.log("core.isDebug", core.isDebug())
-
-    const workDir = core.getInput("work-dir")
-    const isPrerelease = core.getInput("is-prerelease")
-    const environment = core.getInput("environment")
-    const branch = convertBranch(core.getInput("branch"))
-    const commit = core.getInput("commit")
-
-    const packageJsonPath = join(
-      resolveWorkingDirectory(workDir),
-      "package.json"
+    await execute(
+      core.getInput("work-dir"),
+      core.getInput("is-prerelease"),
+      core.getInput("environment"),
+      core.getInput("branch"),
+      core.getInput("commit")
     )
-
-    const versionResolver = new VersionResolver(
-      packageJsonPath,
-      environment,
-      isPrerelease,
-      branch,
-      commit
-    )
-
-    let latestVersion = await versionResolver.getLatestPublishedVersion()
-
-    // If no published versions are found use the current one from package.json.
-    if (!latestVersion) {
-      const currentVersion = versionResolver.package.version
-
-      core.info(`latest version not found; using current ${currentVersion}`)
-      latestVersion = currentVersion
-    }
-
-    core.info(`saving version ${latestVersion} to package.json file`)
-    versionResolver.package.storeVersionInFile(latestVersion.toString())
-
-    const newVersion = await versionResolver.bumpVersion()
-
-    core.info(`version bumped to: ${newVersion}`)
-
-    core.setOutput("version", newVersion.toString())
   } catch (error) {
     core.setFailed(error.message)
   }
@@ -3517,6 +3481,54 @@ try {
 
 /***/ }),
 
+/***/ 1713:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+const core = __nccwpck_require__(2186)
+const { join } = __nccwpck_require__(5622)
+const { convertBranch, resolveWorkingDirectory } = __nccwpck_require__(1608)
+
+const { VersionResolver } = __nccwpck_require__(2528)
+
+async function execute(workDir, isPrerelease, environment, branch, commit) {
+  branch = convertBranch(branch)
+  const packageJsonPath = join(resolveWorkingDirectory(workDir), "package.json")
+
+  const versionResolver = new VersionResolver(
+    packageJsonPath,
+    environment,
+    isPrerelease,
+    branch,
+    commit
+  )
+
+  let latestVersion = await versionResolver.getLatestPublishedVersion()
+
+  // If no published versions are found use the current one from package.json.
+  if (!latestVersion) {
+    const currentVersion = versionResolver.package.version
+
+    core.info(`latest version not found; using current ${currentVersion}`)
+    latestVersion = currentVersion
+  }
+
+  core.info(`saving version ${latestVersion} to package.json file`)
+  versionResolver.package.storeVersionInFile(latestVersion.toString())
+
+  const newVersion = await versionResolver.bumpVersion()
+
+  core.info(`version bumped to: ${newVersion}`)
+
+  core.setOutput("version", newVersion.toString())
+
+  return newVersion.toString()
+}
+
+module.exports = { execute }
+
+
+/***/ }),
+
 /***/ 2449:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -3581,7 +3593,7 @@ module.exports = { Package }
 /***/ 1608:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-const { isAbsolute, resolve } = __nccwpck_require__(5622)
+const { isAbsolute, resolve, normalize } = __nccwpck_require__(5622)
 const ROOT_DIR = process.env.GITHUB_WORKSPACE || __dirname
 
 /**
