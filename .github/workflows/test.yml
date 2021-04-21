@@ -1,21 +1,34 @@
-name: "units-test"
+name: "test"
 on:
   pull_request:
   push:
     branches:
-      - main
-      - "releases/*"
+      - v2
 
 jobs:
-  # test action works running from the graph
-  test:
+  # unit tests
+  unit-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - run: yarn install
+      - run: yarn run test
+
+  # test action works running from the graph
+  manual-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: mkdir ./tmp && cp ./test/data/package.json ./tmp
       - uses: ./
         id: bump-version
         with:
-          workDir: ./test/data
+          work-dir: ./tmp
+          environment: "ropsten"
+          branch: ${{ github.ref }}
+          commit: ${{ github.sha }}
       # Print results of action execution to verify them.
       - name: Print package.json content
-        run: cat ./test/data/package.json
+        run: cat ./tmp/package.json
+      - name: Print resolved version
+        run: echo "Resolved new version ${{ steps.bump-version.outputs.version }}"

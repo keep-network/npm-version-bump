@@ -1,0 +1,39 @@
+name: "main"
+on:
+  pull_request:
+  push:
+    branches:
+      - v2
+
+jobs:
+  dist:
+    name: Verify committed dist directory
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Calculate hash of committed `dist` directory
+        run: echo "COMMITTED_HASH=${{ hashFiles('./dist/**') }}" >> $GITHUB_ENV
+
+      - run: yarn install
+
+      - name: Calculate expected hash of `dist` directory
+        run: |
+          rm -rf dist && yarn run prepare
+          echo "EXPECTED_HASH=${{ hashFiles('./dist/**') }}" >> $GITHUB_ENV
+
+      - name: Compare committed and expected hashes
+        run: |
+          echo "COMMITTED_HASH: ${{ env.COMMITTED_HASH }}"
+          echo "EXPECTED_HASH: ${{ env.EXPECTED_HASH }}"
+
+          export RESULT=$(expr "${{ env.COMMITTED_HASH }}" != "${{ env.EXPECTED_HASH }}")
+          echo "RESULT: $RESULT"
+          exit $RESULT
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: yarn install
+      - run: yarn run lint

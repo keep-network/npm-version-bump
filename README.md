@@ -1,10 +1,7 @@
 # NPM Package Version Bump Action
 
-<p align="left">
-  <a href="https://github.com/keep-network/npm-version-bump/actions">
-    <img alt="javscript-action status" src="https://github.com/actions/javascript-action/workflows/units-test/badge.svg">
-  </a>
-</p>
+[![main](https://github.com/keep-network/npm-version-bump/actions/workflows/main.yml/badge.svg?branch=v2)](https://github.com/keep-network/npm-version-bump/actions/workflows/main.yml)
+[![test](https://github.com/keep-network/npm-version-bump/actions/workflows/test.yml/badge.svg?branch=v2)](https://github.com/keep-network/npm-version-bump/actions/workflows/test.yml)
 
 This is a GitHub Action that bumps version of a NPM Package.
 
