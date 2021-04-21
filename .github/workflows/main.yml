@@ -1,0 +1,21 @@
+name: "main"
+on:
+  pull_request:
+  push:
+    # branches:
+    #   - main
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: yarn install
+      - run: |
+          echo "CURRENT_HASH=${{hashFiles('./dist')}}" >> $GITHUB_ENV
+      - run: |
+          yarn run prepare
+          EXPECTED_HASH=${{hashFiles('./dist')}}
+
+          echo "CURRENT_HASH: ${{ env.CURRENT_HASH }}"
+          echo "EXPECTED_HASH: $EXPECTED_HASH"
