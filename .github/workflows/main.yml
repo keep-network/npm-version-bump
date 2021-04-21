@@ -11,19 +11,23 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: yarn install
-      - run: |
+      - name: Calculate hash of committed `dist` directory
+        run: |
           # FIXME: Using github's function `hashFiles` seemed to give incorrect
           # results for the directory so we're using md5sum instead.
-          echo "CURRENT_HASH=$(find dist -type f -exec md5sum {} \; | md5sum)" >> $GITHUB_ENV
+          echo "COMMITTED_HASH=$(find dist -type f -exec md5sum {} \; | md5sum | awk '{print $1}')" >> $GITHUB_ENV
 
-      - run: |
-          rm -rf dist
-          yarn run prepare
+      - name: Calculate expected hash of `dist` directory
+        run: |
+          rm -rf dist && yarn run prepare
 
-          EXPECTED_HASH=$(find dist -type f -exec md5sum {} \; | md5sum)
+          echo "EXPECTED_HASH=$(find dist -type f -exec md5sum {} \; | md5sum | awk '{print $1}')" >> $GITHUB_ENV
 
-          echo "CURRENT_HASH: ${{ env.CURRENT_HASH }}"
-          echo "EXPECTED_HASH: $EXPECTED_HASH"
+      - name: Compare committed and expected hashes
+        run: |
+          echo "COMMITTED_HASH: ${{ env.COMMITTED_HASH }}"
+          echo "EXPECTED_HASH: ${{ env.EXPECTED_HASH }}"
 
-          RESULT=$(expr "${{ env.CURRENT_HASH }}" != "$EXPECTED_HASH")
+          export RESULT=$(expr "${{ env.COMMITTED_HASH }}" != "${{ env.EXPECTED_HASH }}")
+          echo "RESULT: $RESULT"
           exit $RESULT
