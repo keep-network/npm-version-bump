@@ -1,3 +1,4 @@
+// TEST CHANGED
 require('./sourcemap-register.js');module.exports =
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
