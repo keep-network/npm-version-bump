@@ -24,7 +24,10 @@ jobs:
       - uses: ./
         id: bump-version
         with:
-          workDir: ./tmp
+          work-dir: ./tmp
+          environment: "ropsten"
+          branch: ${{ github.ref }}
+          commit: ${{ github.sha }}
       # Print results of action execution to verify them.
       - name: Print package.json content
         run: cat ./tmp/package.json

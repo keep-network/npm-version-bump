@@ -1,49 +1,67 @@
 const core = require("@actions/core")
-const { resolve } = require("path")
+const { dirname } = require("path")
 const { exec } = require("child_process")
 
 const { Package } = require("./package.js")
+const { Version } = require("./version.js")
 
+const DEFAULT_ENVIRONMENT = "dev"
 const DEFAULT_PREID = "pre"
 
 class VersionResolver {
-  constructor(workingDir, npmPackage, isPrerelease, preid) {
-    this.workingDir = resolve(workingDir)
+  /**
+   * @param {string} packageJsonPath
+   * @param {string} environment
+   * @param {string} isPrerelease
+   * @param {string} branch
+   * @param {string} commit
+   */
+  constructor(packageJsonPath, environment, isPrerelease, branch, commit) {
+    this.workingDir = dirname(packageJsonPath)
 
-    this.package = npmPackage
+    this.package = Package.fromFile(packageJsonPath)
 
-    if (!this.package || !this.package.version) {
+    if (!this.package || !this.package.name || !this.package.version) {
       throw new Error(
-        `name and version have to be defined; found name: ${this.package.name}, version: ${this.package.version}`
+        `name and version have to be defined; ` +
+          `found name: ${this.package.name}, version: ${this.package.version}`
       )
     }
 
-    this.isPrerelease = isPrerelease
+    this.isPrerelease = isPrerelease || environment !== "mainnet"
 
-    this.preid = preid
-    if (this.isPrerelease && !preid) {
-      this.preid = VersionResolver.resolvePreid(this.package.version)
+    this.environment = environment || DEFAULT_ENVIRONMENT
+    if (this.isPrerelease && !environment) {
+      this.environment = VersionResolver.resolvePreidFromVersion(
+        this.package.version
+      )
     }
 
+    this.branch = branch
+    this.commit = commit
+
     core.debug(
-      `initialized package version resolver with properties:
-    workingDir:   ${this.workingDir}
-    name:         ${this.package.name}
-    version:      ${this.package.version}
-    isPrerelease: ${this.isPrerelease}
-    preid:        ${this.preid}`
+      `initialized package version resolver with properties:\n` +
+        `workingDir:   ${this.workingDir}\n` +
+        `name:         ${this.package.name}\n` +
+        `version:      ${this.package.version}\n` +
+        `environment:  ${this.environment}\n` +
+        `isPrerelease: ${this.isPrerelease}\n` +
+        `branch:  ${this.branch}\n` +
+        `commit:  ${this.commit}`
     )
   }
 
-  static resolvePreid(version) {
+  /**
+   * @param {Version} version
+   * @return {string}
+   */
+  static resolvePreidFromVersion(version) {
     core.info(`resolving current version preid...`)
 
-    // Find preid in the current version.
-    const result = version.match("^.*-([^.]*).*$")
-
     let preid
-    if (result && result[1]) {
-      preid = result[1]
+    if (version && version.environment) {
+      preid = version.environment
       core.info(`found preid: ${preid}`)
     } else {
       preid = DEFAULT_PREID
@@ -53,6 +71,9 @@ class VersionResolver {
     return preid
   }
 
+  /**
+   * @return {Version}
+   */
   async getLatestPublishedVersion() {
     const name = this.package.name
     const currentVersion = this.package.version
@@ -97,7 +118,7 @@ class VersionResolver {
           latestVersion = versions
         }
 
-        return resolve(latestVersion)
+        return resolve(new Version(latestVersion))
       })
     })
   }
@@ -108,7 +129,7 @@ class VersionResolver {
     }
 
     return new Promise((resolve, reject) => {
-      const command = `npm version prerelease --preid=${this.preid} --no-git-tag-version`
+      const command = `npm version prerelease --preid=${this.environment} --no-git-tag-version`
 
       core.info(`$ ${command}`)
 
@@ -127,12 +148,29 @@ class VersionResolver {
 
         core.debug(stdout)
 
-        const newVersion = stdout.trim()
+        let newVersion = stdout.trim()
+        if (newVersion[0] === "v") newVersion = newVersion.substring(1)
 
-        return resolve(newVersion) // TODO: Resolve specific version
+        // npm version doesn't support adding metadata so we need to append them
+        // manually, see: https://github.com/npm/npm/issues/12825
+        const result = new Version(newVersion)
+
+        if (this.environment) result.environment = this.environment
+        if (this.branch) result.branch = this.branch
+        if (this.commit) result.commit = this.commit
+
+        try {
+          this.package.storeVersionInFile(result)
+        } catch (err) {
+          return reject(
+            new Error(`failed to store version in file: ${err.stack}`)
+          )
+        }
+
+        return resolve(result)
       })
     })
   }
 }
 
-module.exports = { VersionResolver }
+module.exports = { Version, VersionResolver }

@@ -1,5 +1,6 @@
 const core = require("@actions/core")
 const { isAbsolute, join, resolve } = require("path")
+const { convertBranch, resolveWorkingDirectory } = require("./src/utils.js")
 
 const { Package } = require("./src/package.js")
 const { VersionResolver } = require("./src/version-resolver.js")
@@ -8,22 +9,23 @@ const ROOT_DIR = process.env.GITHUB_WORKSPACE || __dirname
 
 async function run() {
   try {
-    const workDir = core.getInput("workDir")
-    const isPrerelease = core.getInput("isPrerelease")
-    const preid = core.getInput("preid")
+    const workDir = core.getInput("work-dir")
+    const isPrerelease = core.getInput("is-prerelease")
+    const environment = core.getInput("environment")
+    const branch = convertBranch(core.getInput("branch"))
+    const commit = core.getInput("commit")
 
     const packageJsonPath = join(
       resolveWorkingDirectory(workDir),
       "package.json"
     )
 
-    const npmPackage = Package.fromFile(packageJsonPath)
-
     const versionResolver = new VersionResolver(
-      workDir,
-      npmPackage,
+      packageJsonPath,
+      environment,
       isPrerelease,
-      preid
+      branch,
+      commit
     )
 
     let latestVersion = await versionResolver.getLatestPublishedVersion()
@@ -37,7 +39,7 @@ async function run() {
     }
 
     core.info(`saving version ${latestVersion} to package.json file`)
-    versionResolver.package.updateVersion(latestVersion)
+    versionResolver.package.storeVersionInFile(latestVersion.toString())
 
     const newVersion = await versionResolver.bumpVersion()
 
@@ -46,14 +48,6 @@ async function run() {
     core.setOutput("version", newVersion)
   } catch (error) {
     core.setFailed(error.message)
-  }
-}
-
-function resolveWorkingDirectory(workDir) {
-  if (isAbsolute(workDir)) {
-    return normalize(workDir)
-  } else {
-    return resolve(ROOT_DIR, workDir)
   }
 }
 

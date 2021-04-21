@@ -7,6 +7,7 @@ require('./sourcemap-register.js');module.exports =
 
 const core = __nccwpck_require__(2186)
 const { isAbsolute, join, resolve } = __nccwpck_require__(5622)
+const { convertBranch, resolveWorkingDirectory } = __nccwpck_require__(1608)
 
 const { Package } = __nccwpck_require__(2449)
 const { VersionResolver } = __nccwpck_require__(2528)
@@ -15,22 +16,23 @@ const ROOT_DIR = process.env.GITHUB_WORKSPACE || __dirname
 
 async function run() {
   try {
-    const workDir = core.getInput("workDir")
-    const isPrerelease = core.getInput("isPrerelease")
-    const preid = core.getInput("preid")
+    const workDir = core.getInput("work-dir")
+    const isPrerelease = core.getInput("is-prerelease")
+    const environment = core.getInput("environment")
+    const branch = convertBranch(core.getInput("branch"))
+    const commit = core.getInput("commit")
 
     const packageJsonPath = join(
       resolveWorkingDirectory(workDir),
       "package.json"
     )
 
-    const npmPackage = Package.fromFile(packageJsonPath)
-
     const versionResolver = new VersionResolver(
-      workDir,
-      npmPackage,
+      packageJsonPath,
+      environment,
       isPrerelease,
-      preid
+      branch,
+      commit
     )
 
     let latestVersion = await versionResolver.getLatestPublishedVersion()
@@ -44,7 +46,7 @@ async function run() {
     }
 
     core.info(`saving version ${latestVersion} to package.json file`)
-    versionResolver.package.updateVersion(latestVersion)
+    versionResolver.package.storeVersionInFile(latestVersion.toString())
 
     const newVersion = await versionResolver.bumpVersion()
 
@@ -53,14 +55,6 @@ async function run() {
     core.setOutput("version", newVersion)
   } catch (error) {
     core.setFailed(error.message)
-  }
-}
-
-function resolveWorkingDirectory(workDir) {
-  if (isAbsolute(workDir)) {
-    return normalize(workDir)
-  } else {
-    return resolve(ROOT_DIR, workDir)
   }
 }
 
@@ -265,6 +259,7 @@ exports.getInput = getInput;
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function setOutput(name, value) {
+    process.stdout.write(os.EOL);
     command_1.issueCommand('set-output', { name }, value);
 }
 exports.setOutput = setOutput;
@@ -2814,22 +2809,30 @@ module.exports = (versions, range, options) => {
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 const Range = __nccwpck_require__(9828)
-const { ANY } = __nccwpck_require__(1532)
+const Comparator = __nccwpck_require__(1532)
+const { ANY } = Comparator
 const satisfies = __nccwpck_require__(6055)
 const compare = __nccwpck_require__(4309)
 
 // Complex range `r1 || r2 || ...` is a subset of `R1 || R2 || ...` iff:
-// - Every simple range `r1, r2, ...` is a subset of some `R1, R2, ...`
+// - Every simple range `r1, r2, ...` is a null set, OR
+// - Every simple range `r1, r2, ...` which is not a null set is a subset of
+//   some `R1, R2, ...`
 //
 // Simple range `c1 c2 ...` is a subset of simple range `C1 C2 ...` iff:
 // - If c is only the ANY comparator
 //   - If C is only the ANY comparator, return true
-//   - Else return false
+//   - Else if in prerelease mode, return false
+//   - else replace c with `[>=0.0.0]`
+// - If C is only the ANY comparator
+//   - if in prerelease mode, return true
+//   - else replace C with `[>=0.0.0]`
 // - Let EQ be the set of = comparators in c
 // - If EQ is more than one, return true (null set)
 // - Let GT be the highest > or >= comparator in c
 // - Let LT be the lowest < or <= comparator in c
 // - If GT and LT, and GT.semver > LT.semver, return true (null set)
+// - If any C is a = range, and GT or LT are set, return false
 // - If EQ
 //   - If GT, and EQ does not satisfy GT, return true (null set)
 //   - If LT, and EQ does not satisfy LT, return true (null set)
@@ -2838,13 +2841,16 @@ const compare = __nccwpck_require__(4309)
 // - If GT
 //   - If GT.semver is lower than any > or >= comp in C, return false
 //   - If GT is >=, and GT.semver does not satisfy every C, return false
+//   - If GT.semver has a prerelease, and not in prerelease mode
+//     - If no C has a prerelease and the GT.semver tuple, return false
 // - If LT
 //   - If LT.semver is greater than any < or <= comp in C, return false
 //   - If LT is <=, and LT.semver does not satisfy every C, return false
-// - If any C is a = range, and GT or LT are set, return false
+//   - If GT.semver has a prerelease, and not in prerelease mode
+//     - If no C has a prerelease and the LT.semver tuple, return false
 // - Else return true
 
-const subset = (sub, dom, options) => {
+const subset = (sub, dom, options = {}) => {
   if (sub === dom)
     return true
 
@@ -2873,8 +2879,21 @@ const simpleSubset = (sub, dom, options) => {
   if (sub === dom)
     return true
 
-  if (sub.length === 1 && sub[0].semver === ANY)
-    return dom.length === 1 && dom[0].semver === ANY
+  if (sub.length === 1 && sub[0].semver === ANY) {
+    if (dom.length === 1 && dom[0].semver === ANY)
+      return true
+    else if (options.includePrerelease)
+      sub = [ new Comparator('>=0.0.0-0') ]
+    else
+      sub = [ new Comparator('>=0.0.0') ]
+  }
+
+  if (dom.length === 1 && dom[0].semver === ANY) {
+    if (options.includePrerelease)
+      return true
+    else
+      dom = [ new Comparator('>=0.0.0') ]
+  }
 
   const eqSet = new Set()
   let gt, lt
@@ -2917,10 +2936,32 @@ const simpleSubset = (sub, dom, options) => {
 
   let higher, lower
   let hasDomLT, hasDomGT
+  // if the subset has a prerelease, we need a comparator in the superset
+  // with the same tuple and a prerelease, or it's not a subset
+  let needDomLTPre = lt &&
+    !options.includePrerelease &&
+    lt.semver.prerelease.length ? lt.semver : false
+  let needDomGTPre = gt &&
+    !options.includePrerelease &&
+    gt.semver.prerelease.length ? gt.semver : false
+  // exception: <1.2.3-0 is the same as <1.2.3
+  if (needDomLTPre && needDomLTPre.prerelease.length === 1 &&
+      lt.operator === '<' && needDomLTPre.prerelease[0] === 0) {
+    needDomLTPre = false
+  }
+
   for (const c of dom) {
     hasDomGT = hasDomGT || c.operator === '>' || c.operator === '>='
     hasDomLT = hasDomLT || c.operator === '<' || c.operator === '<='
     if (gt) {
+      if (needDomGTPre) {
+        if (c.semver.prerelease && c.semver.prerelease.length &&
+            c.semver.major === needDomGTPre.major &&
+            c.semver.minor === needDomGTPre.minor &&
+            c.semver.patch === needDomGTPre.patch) {
+          needDomGTPre = false
+        }
+      }
       if (c.operator === '>' || c.operator === '>=') {
         higher = higherGT(gt, c, options)
         if (higher === c && higher !== gt)
@@ -2929,6 +2970,14 @@ const simpleSubset = (sub, dom, options) => {
         return false
     }
     if (lt) {
+      if (needDomLTPre) {
+        if (c.semver.prerelease && c.semver.prerelease.length &&
+            c.semver.major === needDomLTPre.major &&
+            c.semver.minor === needDomLTPre.minor &&
+            c.semver.patch === needDomLTPre.patch) {
+          needDomLTPre = false
+        }
+      }
       if (c.operator === '<' || c.operator === '<=') {
         lower = lowerLT(lt, c, options)
         if (lower === c && lower !== lt)
@@ -2947,6 +2996,12 @@ const simpleSubset = (sub, dom, options) => {
     return false
 
   if (lt && hasDomGT && !gt && gtltComp !== 0)
+    return false
+
+  // we needed a prerelease range in a specific tuple, but didn't get one
+  // then this isn't a subset.  eg >=1.2.3-pre is not a subset of >=1.0.0,
+  // because it includes prereleases in the 1.2.3 tuple
+  if (needDomGTPre || needDomLTPre)
     return false
 
   return true
@@ -3469,10 +3524,12 @@ const { readFileSync, writeFileSync } = __nccwpck_require__(5747)
 const { resolve } = __nccwpck_require__(5622)
 const semver = __nccwpck_require__(1383)
 
+const { Version } = __nccwpck_require__(9554)
+
 class Package {
-  constructor(name, version, filePath) {
+  constructor(name, versionString, filePath) {
     this.name = name
-    this.version = version
+    this.version = new Version(versionString)
     this.filePath = filePath
   }
 
@@ -3494,10 +3551,11 @@ class Package {
     return newPackage
   }
 
-  updateVersion(newVersion) {
-    if (!semver.valid(newVersion)) {
-      throw new Error(`invalid version provided: ${newVersion}`)
-    }
+  /**
+   *
+   * @param {Version} newVersion
+   */
+  storeVersionInFile(newVersion) {
     this.version = newVersion
 
     if (!this.filePath) {
@@ -3507,7 +3565,7 @@ class Package {
     const packageJsonContent = readFileSync(this.filePath)
     const pacakgeJson = JSON.parse(packageJsonContent)
 
-    pacakgeJson.version = this.version
+    pacakgeJson.version = this.version.toString()
 
     writeFileSync(this.filePath, JSON.stringify(pacakgeJson, null, 2))
 
@@ -3520,55 +3578,103 @@ module.exports = { Package }
 
 /***/ }),
 
+/***/ 1608:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+const { isAbsolute, resolve } = __nccwpck_require__(5622)
+
+/**
+ * @param {string} string
+ * @return {string}
+ */
+function convertBranch(string) {
+  // We're replacing characters in the branch name:
+  // - `/` is invalid for semver,
+  // - `.` in the regexp we use for version metadata parsing it starts the commit
+  //    hash part.
+  return string.replace(/[\/\.]/g, "-")
+}
+
+function resolveWorkingDirectory(workDir) {
+  if (isAbsolute(workDir)) {
+    return normalize(workDir)
+  } else {
+    return resolve(ROOT_DIR, workDir)
+  }
+}
+
+module.exports = { convertBranch, resolveWorkingDirectory }
+
+
+/***/ }),
+
 /***/ 2528:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 const core = __nccwpck_require__(2186)
-const { resolve } = __nccwpck_require__(5622)
-const { exec } = __nccwpck_require__(3129) // TODO: Change to `@actions/exec`
+const { dirname } = __nccwpck_require__(5622)
+const { exec } = __nccwpck_require__(3129)
 
 const { Package } = __nccwpck_require__(2449)
+const { Version } = __nccwpck_require__(9554)
 
+const DEFAULT_ENVIRONMENT = "dev"
 const DEFAULT_PREID = "pre"
 
 class VersionResolver {
-  constructor(workingDir, npmPackage, isPrerelease, preid) {
-    this.workingDir = resolve(workingDir)
+  /**
+   * @param {string} packageJsonPath
+   * @param {string} environment
+   * @param {string} isPrerelease
+   * @param {string} branch
+   * @param {string} commit
+   */
+  constructor(packageJsonPath, environment, isPrerelease, branch, commit) {
+    this.workingDir = dirname(packageJsonPath)
 
-    this.package = npmPackage
+    this.package = Package.fromFile(packageJsonPath)
 
-    if (!this.package || !this.package.version) {
+    if (!this.package || !this.package.name || !this.package.version) {
       throw new Error(
-        `name and version have to be defined; found name: ${this.package.name}, version: ${this.package.version}`
+        `name and version have to be defined; ` +
+          `found name: ${this.package.name}, version: ${this.package.version}`
       )
     }
 
-    this.isPrerelease = isPrerelease
+    this.isPrerelease = isPrerelease || environment !== "mainnet"
 
-    this.preid = preid
-    if (this.isPrerelease && !preid) {
-      this.preid = VersionResolver.resolvePreid(this.package.version)
+    this.environment = environment || DEFAULT_ENVIRONMENT
+    if (this.isPrerelease && !environment) {
+      this.environment = VersionResolver.resolvePreidFromVersion(
+        this.package.version
+      )
     }
 
+    this.branch = branch
+    this.commit = commit
+
     core.debug(
-      `initialized package version resolver with properties:
-    workingDir:   ${this.workingDir}
-    name:         ${this.package.name}
-    version:      ${this.package.version}
-    isPrerelease: ${this.isPrerelease}
-    preid:        ${this.preid}`
+      `initialized package version resolver with properties:\n` +
+        `workingDir:   ${this.workingDir}\n` +
+        `name:         ${this.package.name}\n` +
+        `version:      ${this.package.version}\n` +
+        `environment:  ${this.environment}\n` +
+        `isPrerelease: ${this.isPrerelease}\n` +
+        `branch:  ${this.branch}\n` +
+        `commit:  ${this.commit}`
     )
   }
 
-  static resolvePreid(version) {
+  /**
+   * @param {Version} version
+   * @return {string}
+   */
+  static resolvePreidFromVersion(version) {
     core.info(`resolving current version preid...`)
 
-    // Find preid in the current version.
-    const result = version.match("^.*-([^.]*).*$")
-
     let preid
-    if (result && result[1]) {
-      preid = result[1]
+    if (version && version.environment) {
+      preid = version.environment
       core.info(`found preid: ${preid}`)
     } else {
       preid = DEFAULT_PREID
@@ -3578,6 +3684,9 @@ class VersionResolver {
     return preid
   }
 
+  /**
+   * @return {Version}
+   */
   async getLatestPublishedVersion() {
     const name = this.package.name
     const currentVersion = this.package.version
@@ -3622,7 +3731,7 @@ class VersionResolver {
           latestVersion = versions
         }
 
-        return resolve(latestVersion)
+        return resolve(new Version(latestVersion))
       })
     })
   }
@@ -3633,7 +3742,7 @@ class VersionResolver {
     }
 
     return new Promise((resolve, reject) => {
-      const command = `npm version prerelease --preid=${this.preid} --no-git-tag-version`
+      const command = `npm version prerelease --preid=${this.environment} --no-git-tag-version`
 
       core.info(`$ ${command}`)
 
@@ -3652,15 +3761,87 @@ class VersionResolver {
 
         core.debug(stdout)
 
-        const newVersion = stdout.trim()
+        let newVersion = stdout.trim()
+        if (newVersion[0] === "v") newVersion = newVersion.substring(1)
 
-        return resolve(newVersion) // TODO: Resolve specific version
+        // npm version doesn't support adding metadata so we need to append them
+        // manually, see: https://github.com/npm/npm/issues/12825
+        const result = new Version(newVersion)
+
+        if (this.environment) result.environment = this.environment
+        if (this.branch) result.branch = this.branch
+        if (this.commit) result.commit = this.commit
+
+        try {
+          this.package.storeVersionInFile(result)
+        } catch (err) {
+          return reject(
+            new Error(`failed to store version in file: ${err.stack}`)
+          )
+        }
+
+        return resolve(result)
       })
     })
   }
 }
 
-module.exports = { VersionResolver }
+module.exports = { Version, VersionResolver }
+
+
+/***/ }),
+
+/***/ 9554:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+const semver = __nccwpck_require__(1383)
+
+/* 
+<base-version>-<environment>.<build-number>+<branch>.<commit> 
+*/
+// FIXME: This pattern doesn't support branches with `.` character.
+const VERSION_REGEXP =
+  "^(?<baseVersion>\\d+\\.\\d+\\.\\d+)(?:-(?<environment>\\w+))?(?:\\.(?<buildNumber>\\d+))?(?:\\+(?<branch>[\\w\\-/]+))?(?:\\.(?<commit>\\w+))?$"
+
+class Version {
+  /**
+   * @param {string} string
+   */
+  constructor(string) {
+    if (!semver.valid(string)) {
+      throw new Error(`invalid semver version: ${string}`)
+    }
+
+    const matchResult = string.match(VERSION_REGEXP)
+
+    if (!matchResult)
+      throw new Error(`failed to parse version string: ${string}`)
+
+    this.baseVersion = matchResult.groups.baseVersion
+    this.environment = matchResult.groups.environment
+    this.buildNumber = matchResult.groups.buildNumber
+    this.branch = matchResult.groups.branch
+    this.commit = matchResult.groups.commit
+  }
+
+  /**
+   * @return {string}
+   */
+  toString() {
+    if (!this.baseVersion) throw new Error("base version not set")
+
+    let result = this.baseVersion
+
+    if (this.environment) result += `-${this.environment}`
+    if (this.buildNumber) result += `.${this.buildNumber}`
+    if (this.branch) result += `+${this.branch}`
+    if (this.commit) result += `.${this.commit}`
+
+    return result
+  }
+}
+
+module.exports = { Version }
 
 
 /***/ }),

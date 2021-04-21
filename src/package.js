@@ -2,10 +2,12 @@ const { readFileSync, writeFileSync } = require("fs")
 const { resolve } = require("path")
 const semver = require("semver")
 
+const { Version } = require("./version.js")
+
 class Package {
-  constructor(name, version, filePath) {
+  constructor(name, versionString, filePath) {
     this.name = name
-    this.version = version
+    this.version = new Version(versionString)
     this.filePath = filePath
   }
 
@@ -27,10 +29,11 @@ class Package {
     return newPackage
   }
 
-  updateVersion(newVersion) {
-    if (!semver.valid(newVersion)) {
-      throw new Error(`invalid version provided: ${newVersion}`)
-    }
+  /**
+   *
+   * @param {Version} newVersion
+   */
+  storeVersionInFile(newVersion) {
     this.version = newVersion
 
     if (!this.filePath) {
@@ -40,7 +43,7 @@ class Package {
     const packageJsonContent = readFileSync(this.filePath)
     const pacakgeJson = JSON.parse(packageJsonContent)
 
-    pacakgeJson.version = this.version
+    pacakgeJson.version = this.version.toString()
 
     writeFileSync(this.filePath, JSON.stringify(pacakgeJson, null, 2))
 
