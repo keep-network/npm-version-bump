@@ -1,4 +1,4 @@
-const { isAbsolute, resolve } = require("path")
+const { isAbsolute, resolve, normalize } = require("path")
 const ROOT_DIR = process.env.GITHUB_WORKSPACE || __dirname
 
 /**
