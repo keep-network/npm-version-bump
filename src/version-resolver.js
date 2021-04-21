@@ -118,6 +118,8 @@ class VersionResolver {
           latestVersion = versions
         }
 
+        core.info(`latest published version: ${latestVersion}`)
+
         return resolve(new Version(latestVersion))
       })
     })

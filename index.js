@@ -7,6 +7,8 @@ const { VersionResolver } = require("./src/version-resolver.js")
 
 async function run() {
   try {
+    console.log("core.isDebug", core.isDebug())
+
     const workDir = core.getInput("work-dir")
     const isPrerelease = core.getInput("is-prerelease")
     const environment = core.getInput("environment")

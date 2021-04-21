@@ -14,6 +14,8 @@ const { VersionResolver } = __nccwpck_require__(2528)
 
 async function run() {
   try {
+    console.log("core.isDebug", core.isDebug())
+
     const workDir = core.getInput("work-dir")
     const isPrerelease = core.getInput("is-prerelease")
     const environment = core.getInput("environment")
@@ -50,7 +52,7 @@ async function run() {
 
     core.info(`version bumped to: ${newVersion}`)
 
-    core.setOutput("version", newVersion)
+    core.setOutput("version", newVersion.toString())
   } catch (error) {
     core.setFailed(error.message)
   }
@@ -3730,11 +3732,16 @@ class VersionResolver {
           latestVersion = versions
         }
 
+        core.info(`latest published version: ${latestVersion}`)
+
         return resolve(new Version(latestVersion))
       })
     })
   }
 
+  /**
+   * @return {Version}
+   */
   async bumpVersion() {
     if (!this.isPrerelease) {
       throw new Error("only prerelease version bump is supported")
