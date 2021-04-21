@@ -19,3 +19,5 @@ jobs:
 
           echo "CURRENT_HASH: ${{ env.CURRENT_HASH }}"
           echo "EXPECTED_HASH: $EXPECTED_HASH"
+
+          expr "${{ env.CURRENT_HASH }}" = "$EXPECTED_HASH"
