@@ -15,13 +15,14 @@ jobs:
         run: |
           # FIXME: Using github's function `hashFiles` seemed to give incorrect
           # results for the directory so we're using md5sum instead.
-          echo "COMMITTED_HASH=$(find dist -type f -exec md5sum {} \; | md5sum | awk '{print $1}')" >> $GITHUB_ENV
+          ls -l ./dist
+          echo "COMMITTED_HASH=$(find ./dist -type f -exec md5sum {} \; | md5sum | awk '{print $1}')" >> $GITHUB_ENV
 
       - name: Calculate expected hash of `dist` directory
         run: |
           rm -rf dist && yarn run prepare
-
-          echo "EXPECTED_HASH=$(find dist -type f -exec md5sum {} \; | md5sum | awk '{print $1}')" >> $GITHUB_ENV
+          ls -l ./dist
+          echo "EXPECTED_HASH=$(find ./dist -type f -exec md5sum {} \; | md5sum | awk '{print $1}')" >> $GITHUB_ENV
 
       - name: Compare committed and expected hashes
         run: |
