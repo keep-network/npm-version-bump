@@ -1,48 +1,33 @@
 name: "NPM Package Version Bump"
 description: "Bumps version of NPM package"
 inputs:
-  workDir:
+  work-dir:
     description: "Directory containing `package.json` file"
     required: false
     default: "."
+  is-prerelease:
+    description: "Should bump version for prerelease"
+    required: false
+    default: "true"
+  environment:
+    description: "Environment"
+    required: false
+    default: "pre"
+  branch:
+    description: "branch"
+    required: false
+  commit:
+    description: "commit"
+    required: false
+
+outputs:
+  version:
+    description: "Resolved new version"
+
 runs:
-  using: "composite"
-  steps:
-    - id: npm-version-bump
-      shell: bash
-      working-directory: ${{ inputs.workDir }}
-      run: |
-        set -x
+  using: "node12"
+  main: "./dist/index.js"
 
-        name=$(jq --raw-output .name package.json)
-        version=$(jq --raw-output .version package.json)
-        preid=$(echo $version | sed -e s/^.*-\\\([^.]*\\\).*$/\\1/)
-
-        # Check resolved `preid`. Currently only `pre` and `rc` values are supported,
-        # other types of releases are not handled by this job.
-        if [ "$preid" != pre ] && [ "$preid" != rc ]; then
-          echo "Unsupported preid. Resolved info:"
-          echo "$name@$version ; preid $preid"
-          exit 1
-        fi
-
-        # Find the latest published package version matching this preid.
-        # Note that in jq, we wrap the result in an array and then flatten;
-        # this is because npm show json contains a single string if there
-        # is only one matching version, or an array if there are multiple,
-        # and we want to look at an array always.
-        latest_version=$(npm show -json "$name@^$version" version | jq --raw-output "[.] | flatten | .[-1]")
-        latest_version=${latest_version:-$version}
-        if [ -z $latest_version ]; then
-          echo "Latest version calculation failed. Resolved info:"
-          echo "$name@$version ; preid $preid"
-          exit 1
-        fi
-
-        # Update package.json with the latest published package version matching this
-        # preid to prepare for bumping.
-        echo $(jq -M ".version=\"${latest_version}\"" package.json) > package.json
-
-        # Bump without doing any git work. Versioning is a build-time action for us.
-        # Consider including commit id? Would be +<commit id>.
-        npm version prerelease --preid=$preid --no-git-tag-version
+branding:
+  icon: 'arrow-up-circle'  
+  color: 'blue'
