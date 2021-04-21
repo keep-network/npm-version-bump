@@ -12,10 +12,10 @@ jobs:
       - uses: actions/checkout@v2
       - run: yarn install
       - run: |
-          echo "CURRENT_HASH=${{hashFiles('./dist')}}" >> $GITHUB_ENV
+          echo "CURRENT_HASH=${{hashFiles('./dist/**')}}" >> $GITHUB_ENV
       - run: |
           yarn run prepare
-          EXPECTED_HASH=${{hashFiles('./dist')}}
+          EXPECTED_HASH=${{hashFiles('./dist/**')}}
 
           echo "CURRENT_HASH: ${{ env.CURRENT_HASH }}"
           echo "EXPECTED_HASH: $EXPECTED_HASH"
