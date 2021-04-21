@@ -12,12 +12,18 @@ jobs:
       - uses: actions/checkout@v2
       - run: yarn install
       - run: |
-          echo "CURRENT_HASH=${{hashFiles('./dist/**')}}" >> $GITHUB_ENV
+          # FIXME: Using github's function `hashFiles` seemed to give incorrect
+          # results for the directory so we're using md5sum instead.
+          echo "CURRENT_HASH=$(find dist -type f -exec md5sum {} \; | md5sum)" >> $GITHUB_ENV
+
       - run: |
+          rm -rf dist
           yarn run prepare
-          EXPECTED_HASH=${{hashFiles('./dist/**')}}
+
+          EXPECTED_HASH=$(find dist -type f -exec md5sum {} \; | md5sum)
 
           echo "CURRENT_HASH: ${{ env.CURRENT_HASH }}"
           echo "EXPECTED_HASH: $EXPECTED_HASH"
 
-          expr "${{ env.CURRENT_HASH }}" = "$EXPECTED_HASH"
+          RESULT=$(expr "${{ env.CURRENT_HASH }}" != "$EXPECTED_HASH")
+          exit $RESULT
