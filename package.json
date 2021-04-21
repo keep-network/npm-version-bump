@@ -7,7 +7,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "prepare": "ncc build index.js -o dist --source-map --license licenses.txt",
-    "test": "mocha --exit --recursive --timeout 4000",
+    "test": "mocha --exit --recursive --timeout 10000",
     "all": "npm run lint && npm run prepare && npm run test"
   },
   "repository": "git+https://github.com/keep-network/npm-version-bump.git",
