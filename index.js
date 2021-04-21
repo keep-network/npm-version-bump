@@ -43,7 +43,7 @@ async function run() {
 
     core.info(`version bumped to: ${newVersion}`)
 
-    core.setOutput("version", newVersion)
+    core.setOutput("version", newVersion.toString())
   } catch (error) {
     core.setFailed(error.message)
   }

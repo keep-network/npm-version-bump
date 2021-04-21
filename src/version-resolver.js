@@ -123,6 +123,9 @@ class VersionResolver {
     })
   }
 
+  /**
+   * @return {Version}
+   */
   async bumpVersion() {
     if (!this.isPrerelease) {
       throw new Error("only prerelease version bump is supported")
