@@ -3630,6 +3630,7 @@ module.exports = { convertBranch, resolveWorkingDirectory }
 const core = __nccwpck_require__(2186)
 const { dirname } = __nccwpck_require__(5622)
 const { exec } = __nccwpck_require__(3129)
+const semverRsort = __nccwpck_require__(8701)
 
 const { Package } = __nccwpck_require__(2449)
 const { Version } = __nccwpck_require__(9554)
@@ -3707,12 +3708,14 @@ class VersionResolver {
     const name = this.package.name
     const currentVersion = this.package.version
 
-    const query = `${name}@^${currentVersion}`
+    const preID = currentVersion.environment
+
+    const query = `${name}@~${currentVersion}`
 
     core.info(`get latest version matching ${query}`)
 
     return new Promise((resolve, reject) => {
-      const command = `npm show -json ${query} version`
+      const command = `npm view -json ${query} version`
 
       core.info(`$ ${command}`)
       exec(`cd ${this.workingDir} && ${command}`, (err, stdout, stderr) => {
@@ -3742,7 +3745,31 @@ class VersionResolver {
 
         let latestVersion
         if (Array.isArray(versions)) {
-          latestVersion = versions.slice(-1)[0] // get last array item
+          core.info(`found published versions: ${versions}`)
+
+          // If it's a prerelease filter out versions that don't match the prerelease ID.
+          if (preID) {
+            versions = versions.filter((v) => {
+              try {
+                const version = new Version(v)
+                if (!version.environment) {
+                  // Include released version that doesn't have a prerelease ID.
+                  return true
+                }
+                // Check if the prerelease version has the same prerelease ID.
+                return version.environment === preID
+              } catch (err) {
+                reject(err)
+              }
+            })
+
+            core.info(`filtered versions: ${versions}`)
+          }
+
+          // Reverse sort versions.
+          versions = semverRsort(versions)
+
+          latestVersion = versions[0]
         } else {
           latestVersion = versions
         }

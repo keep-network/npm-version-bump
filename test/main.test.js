@@ -75,6 +75,14 @@ describe("Main", function () {
       )
     })
 
+    it("updates version for published pre version that has newer rc version", async () => {
+      await verify("1.3.0-pre", "1.3.1-pre.0+feature-branch-2.1234abcd7890XYZ")
+    })
+
+    it("updates version for published pre version", async () => {
+      await verify("1.8.0-pre", "1.8.0-pre.9+feature-branch-2.1234abcd7890XYZ")
+    })
+
     it("updates version for rc version", async () => {
       await verify("1.7.1-rc.0", "1.7.1-pre.0+feature-branch-2.1234abcd7890XYZ")
     })
