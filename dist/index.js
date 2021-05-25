@@ -3776,7 +3776,7 @@ class VersionResolver {
 
         core.info(`latest published version: ${latestVersion}`)
 
-        return resolve(new Version(latestVersion))
+        return resolve(latestVersion ? new Version(latestVersion) : undefined)
       })
     })
   }

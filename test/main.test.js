@@ -9,7 +9,7 @@ const TEMP_DIR = "./tmp"
 describe("Main", function () {
   describe("execute", () => {
     const isPrerelease = true
-    const environment = "pre"
+    const defaultEnvironment = "pre"
     const branch = "feature/branch.2"
     const commit = "1234abcd7890XYZ"
 
@@ -48,7 +48,7 @@ describe("Main", function () {
       const newVersion = await execute(
         dirname(testFilePath),
         isPrerelease,
-        environment,
+        defaultEnvironment,
         branch,
         commit
       )
@@ -79,16 +79,12 @@ describe("Main", function () {
       await verify("1.3.0-pre", "1.3.1-pre.0+feature-branch-2.1234abcd7890XYZ")
     })
 
-    it("updates version for published pre version", async () => {
-      await verify("1.8.0-pre", "1.8.0-pre.9+feature-branch-2.1234abcd7890XYZ")
-    })
-
     it("updates version for rc version", async () => {
       await verify("1.7.1-rc.0", "1.7.1-pre.0+feature-branch-2.1234abcd7890XYZ")
     })
 
     it("bumps build version for already published pre version", async () => {
-      await verify("1.8.0-pre", "1.8.0-pre.9+feature-branch-2.1234abcd7890XYZ")
+      await verify("1.8.0-pre", "1.8.0-pre.17+feature-branch-2.1234abcd7890XYZ")
     })
 
     it("updates version for not published version with lesser preid", async () => {
@@ -107,9 +103,29 @@ describe("Main", function () {
       await verify("9.0.0", "9.0.1-pre.0+feature-branch-2.1234abcd7890XYZ")
     })
 
+    it("updates version for non-published preid", async () => {
+      await verify(
+        "1.3.1-pre",
+        "1.3.1-testenv.0+feature-branch-2.1234abcd7890XYZ",
+        "testenv"
+      )
+    })
+
+    it("updates version for non-published preid and environment", async () => {
+      await verify(
+        "1.3.1-test",
+        "1.3.1-testenv.0+feature-branch-2.1234abcd7890XYZ",
+        "testenv"
+      )
+    })
+
     // TODO: Add tests for versions bumps of already published packages
 
-    async function verify(initialVersion, expectedVersion) {
+    async function verify(
+      initialVersion,
+      expectedVersion,
+      environment = defaultEnvironment
+    ) {
       const packageJson = {
         name: "@keep-network/keep-core",
         version: initialVersion,
