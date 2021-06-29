@@ -79,8 +79,6 @@ class VersionResolver {
     const name = this.package.name
     const currentVersion = this.package.version
 
-    const preID = currentVersion.environment
-
     const query = `${name}@~${currentVersion}`
 
     core.info(`get latest version matching ${query}`)
@@ -119,7 +117,7 @@ class VersionResolver {
           core.info(`found published versions: ${versions}`)
 
           // If it's a prerelease filter out versions that don't match the prerelease ID.
-          if (preID) {
+          if (this.isPrerelease) {
             versions = versions.filter((v) => {
               try {
                 const version = new Version(v)
@@ -128,7 +126,7 @@ class VersionResolver {
                   return true
                 }
                 // Check if the prerelease version has the same prerelease ID.
-                return version.environment === preID
+                return version.environment === this.environment
               } catch (err) {
                 reject(err)
               }

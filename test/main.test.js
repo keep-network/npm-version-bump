@@ -10,6 +10,7 @@ describe("Main", function () {
   describe("execute", () => {
     const isPrerelease = true
     const defaultEnvironment = "pre"
+    const defaultPackageName = "@keep-network/keep-core"
     const branch = "feature/branch.2"
     const commit = "1234abcd7890XYZ"
 
@@ -119,15 +120,25 @@ describe("Main", function () {
       )
     })
 
+    it("updates version for already published environment that don't match initial preid", async () => {
+      await verify(
+        "1.1.2-pre",
+        "1.1.2-ropsten.1+feature-branch-2.1234abcd7890XYZ",
+        "ropsten",
+        "@keep-network/tbtc"
+      )
+    })
+
     // TODO: Add tests for versions bumps of already published packages
 
     async function verify(
       initialVersion,
       expectedVersion,
-      environment = defaultEnvironment
+      environment = defaultEnvironment,
+      packageName = defaultPackageName
     ) {
       const packageJson = {
-        name: "@keep-network/keep-core",
+        name: packageName,
         version: initialVersion,
       }
 
