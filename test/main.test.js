@@ -85,7 +85,11 @@ describe("Main", function () {
     })
 
     it("bumps build version for already published pre version", async () => {
-      await verify("1.8.0-pre", "1.8.0-pre.17+feature-branch-2.1234abcd7890XYZ")
+      await verify(
+        "1.8.1-dev",
+        "1.8.1-dev.1+feature-branch-2.1234abcd7890XYZ",
+        "dev"
+      )
     })
 
     it("updates version for not published version with lesser preid", async () => {
