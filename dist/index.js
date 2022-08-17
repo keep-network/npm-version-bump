@@ -3821,7 +3821,7 @@ const semver = __nccwpck_require__(1383)
 */
 // FIXME: This pattern doesn't support branches with `.` character.
 const VERSION_REGEXP =
-  "^(?<baseVersion>\\d+\\.\\d+\\.\\d+)(?:-(?<environment>[\\w\\-]+))?(?:\\.(?<buildNumber>\\d+))?(?:\\+(?<branch>[\\w\\-/]+))?(?:\\.(?<commit>\\w+))?$"
+  "^(?<baseVersion>\\d+\\.\\d+\\.\\d+)(?:-(?<environment>[a-zA-Z0-9\\-]+))?(?:\\.(?<buildNumber>\\d+))?(?:\\+(?<branch>[\\w\\-/]+))?(?:\\.(?<commit>\\w+))?$"
 
 class Version {
   /**
