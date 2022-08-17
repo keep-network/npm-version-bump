@@ -129,6 +129,14 @@ describe("Main", function () {
       )
     })
 
+    it("updates version for environment containing hyphen", async () => {
+      await verify(
+        "1.3.1-pre",
+        "1.3.1-dapp-development.0+feature-branch-2.1234abcd7890XYZ",
+        "dapp-development"
+      )
+    })
+
     // TODO: Add tests for versions bumps of already published packages
 
     async function verify(

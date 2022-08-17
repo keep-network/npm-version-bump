@@ -1,31 +1,5 @@
-require('./sourcemap-register.js');module.exports =
-/******/ (() => { // webpackBootstrap
+require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
-
-/***/ 2932:
-/***/ ((__unused_webpack_module, __unused_webpack_exports, __nccwpck_require__) => {
-
-const core = __nccwpck_require__(2186)
-const { execute } = __nccwpck_require__(1713)
-
-async function run() {
-  try {
-    await execute(
-      core.getInput("work-dir"),
-      core.getInput("is-prerelease"),
-      core.getInput("environment"),
-      core.getInput("branch"),
-      core.getInput("commit")
-    )
-  } catch (error) {
-    core.setFailed(error.message)
-  }
-}
-
-run()
-
-
-/***/ }),
 
 /***/ 7351:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
@@ -3847,7 +3821,7 @@ const semver = __nccwpck_require__(1383)
 */
 // FIXME: This pattern doesn't support branches with `.` character.
 const VERSION_REGEXP =
-  "^(?<baseVersion>\\d+\\.\\d+\\.\\d+)(?:-(?<environment>\\w+))?(?:\\.(?<buildNumber>\\d+))?(?:\\+(?<branch>[\\w\\-/]+))?(?:\\.(?<commit>\\w+))?$"
+  "^(?<baseVersion>\\d+\\.\\d+\\.\\d+)(?:-(?<environment>[\\w\\-]+))?(?:\\.(?<buildNumber>\\d+))?(?:\\+(?<branch>[\\w\\-/]+))?(?:\\.(?<commit>\\w+))?$"
 
 class Version {
   /**
@@ -3932,8 +3906,9 @@ module.exports = require("path");;
 /******/ 	// The require function
 /******/ 	function __nccwpck_require__(moduleId) {
 /******/ 		// Check if module is in cache
-/******/ 		if(__webpack_module_cache__[moduleId]) {
-/******/ 			return __webpack_module_cache__[moduleId].exports;
+/******/ 		var cachedModule = __webpack_module_cache__[moduleId];
+/******/ 		if (cachedModule !== undefined) {
+/******/ 			return cachedModule.exports;
 /******/ 		}
 /******/ 		// Create a new module (and put it into the cache)
 /******/ 		var module = __webpack_module_cache__[moduleId] = {
@@ -3958,11 +3933,32 @@ module.exports = require("path");;
 /************************************************************************/
 /******/ 	/* webpack/runtime/compat */
 /******/ 	
-/******/ 	__nccwpck_require__.ab = __dirname + "/";/************************************************************************/
-/******/ 	// module exports must be returned from runtime so entry inlining is disabled
-/******/ 	// startup
-/******/ 	// Load entry module and return exports
-/******/ 	return __nccwpck_require__(2932);
+/******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";/************************************************************************/
+var __webpack_exports__ = {};
+// This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
+(() => {
+const core = __nccwpck_require__(2186)
+const { execute } = __nccwpck_require__(1713)
+
+async function run() {
+  try {
+    await execute(
+      core.getInput("work-dir"),
+      core.getInput("is-prerelease"),
+      core.getInput("environment"),
+      core.getInput("branch"),
+      core.getInput("commit")
+    )
+  } catch (error) {
+    core.setFailed(error.message)
+  }
+}
+
+run()
+
+})();
+
+module.exports = __webpack_exports__;
 /******/ })()
 ;
 //# sourceMappingURL=index.js.map
