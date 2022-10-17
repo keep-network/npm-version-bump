@@ -10,7 +10,7 @@ jobs:
     name: Verify committed dist directory
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Calculate hash of committed `dist` directory
         run: echo "COMMITTED_HASH=${{ hashFiles('./dist/**') }}" >> $GITHUB_ENV
@@ -34,6 +34,6 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - run: yarn install
       - run: yarn run lint
