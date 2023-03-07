@@ -10,7 +10,7 @@ jobs:
   unit-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - run: yarn install
       - run: yarn run test
 
@@ -18,7 +18,7 @@ jobs:
   manual-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - run: mkdir ./tmp && cp ./test/data/package.json ./tmp
       - uses: ./
         id: bump-version
